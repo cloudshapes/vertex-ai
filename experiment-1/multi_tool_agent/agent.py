@@ -1,42 +1,30 @@
 from google.adk.agents import Agent
 
-def get_weather(city: str) -> dict:
-    """Retrieves the current weather report for a specified city.
+import requests
 
-    Returns:
-        dict: A dictionary containing the weather information with a 'status' key ('success' or 'error') and a 'report' key with the weather details if successful, or an 'error_message' if an error occurred.
-    """
-    if city.lower() == "new york":
-        return {"status": "success",
-                "report": "The weather in New York is sunny with a temperature of 25 degrees Celsius (77 degrees Fahrenheit)."}
-    else:
-        return {"status": "error",
-                "error_message": f"Weather information for '{city}' is not available."}
+def get_latest_news(topic: str) -> dict:
+    """Returns recent news articles about a given topic."""
+    api_key = "238d94566ef74956b67c0756f3579e88"  # Secure via env var ideally
+    url = f"https://newsapi.org/v2/everything?q={topic}&sortBy=publishedAt&pageSize=5&apiKey={api_key}"
 
-def get_current_time(city:str) -> dict:
-    """Returns the current time in a specified city.
+    response = requests.get(url)
+    if response.status_code != 200:
+        return {"status": "error", "error_message": f"Failed to fetch articles: {response.text}"}
 
-    Args:
-        dict: A dictionary containing the current time for a specified city information with a 'status' key ('success' or 'error') and a 'report' key with the current time details in a city if successful, or an 'error_message' if an error occurred.
-    """
-    import datetime
-    from zoneinfo import ZoneInfo
+    articles = response.json().get("articles", [])
+    if not articles:
+        return {"status": "success", "report": f"No articles found for {topic}."}
 
-    if city.lower() == "new york":
-        tz_identifier = "America/New_York"
-    else:
-        return {"status": "error",
-                "error_message": f"Sorry, I don't have timezone information for {city}."}
+    summaries = [
+        f"{a['title']} ({a['source']['name']}) - {a['url']}" for a in articles
+    ]
 
-    tz = ZoneInfo(tz_identifier)
-    now = datetime.datetime.now(tz)
-    return {"status": "success",
-            "report": f"""The current time in {city} is {now.strftime("%Y-%m-%d %H:%M:%S %Z%z")}"""}
+    return {"status": "success", "report": "\n".join(summaries)}
 
 root_agent = Agent(
-    name="weather_time_agent",
+    name="heat_news_agent",
     model="gemini-2.0-flash",
-    description="Agent to answer questions about the time and weather in a city.",
-    instruction="I can answer your questions about the time and weather in a city.",
-    tools=[get_weather, get_current_time]
-)
+    description="Agent that provides updates on low carbon heating and district energy systems.",
+    instruction="I can find you recent news about heat networks, district heating, and geothermal energy.",
+    tools=[get_latest_news]
+) 
