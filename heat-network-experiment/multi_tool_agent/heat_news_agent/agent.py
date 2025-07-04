@@ -1,8 +1,8 @@
 # agent.py
 
-from vertexai.generative_models.tools import FunctionTool
 import requests
 from google.cloud import secretmanager
+from google.adk.agents import Agent
 
 # 🔐 Helper to fetch API key securely
 def get_secret(secret_id: str) -> str:
@@ -45,20 +45,20 @@ def get_latest_news(topic: str) -> dict:
     return {"status": "success", "report": entries}
 
 
-# 🛠 Register tool using Vertex AI's FunctionTool
-latest_news_tool = FunctionTool(get_latest_news)
-
 # 🧠 Agent configuration (dict instead of ADK Agent class)
-root_agent = {
-    "name": "heat_news_agent",
-    "model": "gemini-2.5-flash",
-    "instruction": (
+root_agent = Agent(
+    name="heat_news_agent",
+    model="gemini-2.5-flash",
+    description=(
+        "Agent to answer questions about heat networks"
+    ),
+    instruction=(
         "You are an expert on low carbon heating systems. "
         "When the user asks about district heating, mine water geothermal, or heat networks, "
         "use the `get_latest_news` tool. "
         "Summarize the results with titles and clickable links. Avoid off-topic results."
     ),
-    "tools": [latest_news_tool]
-}
+    tools=[get_latest_news]
+)
 
 
